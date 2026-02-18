@@ -32,7 +32,7 @@ The return process allows customers to return purchased items through any sales 
 3. **WMS Task Creation**
    - OMS creates return task in WMS
    - Return task includes: expected items, customer address, return label
-   - WMS status: awaiting item
+   - WMS status: awaiting_item
 
 4. **Customer Ships Item**
    - Customer receives return label (email/portal)
