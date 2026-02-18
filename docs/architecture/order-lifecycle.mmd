@@ -1,0 +1,105 @@
+---
+config:
+  layout: dagre
+---
+flowchart TB
+ subgraph src["Data Sources"]
+        Verto("Verto ERP")
+        pim("PIM")
+ end
+ subgraph oms_block["Order Management"]
+        OMS("⭐ OMS — Source of Truth")
+        WMS("WMS")
+ end
+ subgraph channels["Sales Channels"]
+        M2("Magento 2")
+        BL("Baselinker")
+        AMS("AMS")
+        POS("POS")
+ end
+ subgraph marketplaces["Marketplaces"]
+        Allegro("Allegro / Empik")
+ end
+ subgraph support["Support Systems"]
+        CRM("CRM")
+        Pay("Payment Gateway")
+        Analytics("BI / Analytics")
+ end
+
+    %% Product data flow
+    n1["Content manager"] -- "2. Product filling" --> pim
+    Verto -- "1. SKU, Stock, Price" --> pim
+    pim -- "3. Product data" --> M2 & BL & AMS
+
+    %% Marketplace sync
+    BL <-- "4. Sync products/orders" --> Allegro
+
+    %% Payment flow (corrected)
+    M2 <-- "Payment request/callback" --> Pay
+    BL <-- "Payment request/callback" --> Pay
+    Pay -- "Reconciliation data" --> Verto
+
+    %% Order flow
+    M2 -- "5a. Orders (with payment status)" --> OMS
+    BL -- "5b. Orders (with payment status)" --> OMS
+    AMS -- "5c. Orders" --> OMS
+    POS -- "5d. Sales data" --> OMS
+
+    %% Order status feedback
+    OMS -. "8a. Order/shipment status" .-> M2
+    OMS -. "8b. Order/shipment status" .-> BL
+    OMS -. "8c. Order/shipment status" .-> AMS
+
+    %% Fulfillment
+    OMS -- "6. Fulfillment tasks\n(supports partial shipment)" --> WMS
+    WMS -- "7. Shipment status\n(full or partial)" --> OMS
+    OMS -- "8. Order & Finance data" --> Verto
+
+    %% Returns flow
+    M2 -. "Return request" .-> OMS
+    BL -. "Return request" .-> OMS
+    OMS -. "Return task" .-> WMS
+    WMS -. "Item received" .-> OMS
+    OMS -. "Refund request" .-> Verto
+    Verto -. "Refund" .-> Pay
+
+    %% Stock update loop
+    Verto -- "9. Stock update" --> pim
+
+    %% CRM
+    M2 -- "Customer data" --> CRM
+    POS -- "Customer data" --> CRM
+    OMS -- "Order history" --> CRM
+
+    %% Analytics
+    Verto -- "Finance data" --> Analytics
+    OMS -- "Order data" --> Analytics
+    CRM -- "Customer data" --> Analytics
+    M2 -- "Traffic & Sales" --> Analytics
+
+    %% Styles
+    n1@{ shape: rect}
+    Verto:::erp
+    pim:::pim
+    OMS:::oms
+    WMS:::oms
+    M2:::channel
+    BL:::channel
+    AMS:::channel
+    POS:::channel
+    Allegro:::market
+    CRM:::support_sys
+    Pay:::support_sys
+    Analytics:::support_sys
+
+    classDef erp fill:#f9f,stroke:#333,stroke-width:2px
+    classDef pim fill:#bbf,stroke:#333,stroke-width:2px
+    classDef channel fill:#bfb,stroke:#333,stroke-width:2px
+    classDef market fill:#eee,stroke:#333,stroke-width:1px
+    classDef oms fill:#ff9,stroke:#333,stroke-width:2px
+    classDef support_sys fill:#fdb,stroke:#333,stroke-width:1px
+    style src fill:#f5f5ff,stroke:#aaa
+    style oms_block fill:#fffff0,stroke:#aaa
+    style channels fill:#f0fff0,stroke:#aaa
+    style marketplaces fill:#f5f5f5,stroke:#aaa
+    style support fill:#fff5ee,stroke:#aaa
